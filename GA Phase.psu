@@ -1,0 +1,69 @@
+CLASS GeneticAlgorithm:
+    METHOD initialize(num_gateways, num_resources, population_size, generations, mutation_rate):
+        SET this.num_gateways TO num_gateways
+        SET this.num_resources TO num_resources
+        SET this.population_size TO population_size
+        SET this.generations TO generations
+        SET this.mutation_rate TO mutation_rate
+
+    METHOD create_initial_population(initial_solutions):
+        INITIALIZE population AS a copy of initial_solutions
+        WHILE population size is less than population_size:
+            SET individual TO CALL create_initial_individual
+            ADD individual TO population
+        RETURN population
+
+    METHOD create_initial_individual:
+        INITIALIZE individual AS an empty list
+        INITIALIZE probability_distribution FOR gateways AND resources
+        SET visited_nodes TO a list of False with size equal to number of nodes
+        INITIALIZE index, temp, and j to 0
+        WHILE there are unvisited nodes:              
+            IF j IS even:
+                SELECT a random node from resources AS rand_node
+            ELSE:
+                SELECT a random node from gateways AS rand_node
+            ADD rand_node TO individual
+            MARK rand_node AS visited
+            DECREASE probability_distribution FOR rand_node
+            INCREMENT index AND j
+        RETURN individual
+
+    METHOD fitness(individual):
+        INITIALIZE total_cost AS 0
+        FOR i FROM 1 TO length of individual - 1:
+            ADD cost_matrix[individual[i]][individual[i + 1]] TO total_cost
+        RETURN 1 / total_cost
+
+    METHOD selection(population, fitnesses):
+        CALCULATE the total fitness
+        DETERMINE selection probabilities based on fitnesses
+        SELECT individuals from population based on selection probabilities
+        RETURN selected individuals
+
+    METHOD crossover(parent1, parent2):
+        SELECT a random crossover point
+        CREATE child1 by combining parts of parent1 and parent2
+        CREATE child2 by combining parts of parent2 and parent1
+        RETURN child1 AND child2
+
+    METHOD mutate(individual):
+        IF a random value is less than mutation_rate:
+            SELECT two random indices in individual
+            SWAP the values at these indices
+        RETURN individual
+
+
+    METHOD run(initial_solutions):
+        SET population TO CALL create_initial_population WITH initial_solutions
+        FOR each generation FROM 1 TO generations:
+            SET fitnesses TO CALL fitness FOR all individuals in population
+            SET selected TO CALL selection WITH population AND fitnesses
+            INITIALIZE next_generation AS an empty list
+            FOR each pair of selected individuals:
+                SET child1 AND child2 TO CALL crossover WITH parent1 AND parent2
+                ADD CALL mutate WITH child1 TO next_generation
+                ADD CALL mutate WITH child2 TO next_generation
+            SET population TO next_generation
+        FIND the individual with the highest fitness in the final population
+        RETURN the best individual AND its corresponding fitness value

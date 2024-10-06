@@ -1,0 +1,63 @@
+CLASS AntColony:
+    METHOD initialize(num_ants, num_iterations, decay, alpha, beta):
+        SET this.num_ants TO num_ants
+        SET this.num_iterations TO num_iterations
+        SET this.decay TO decay
+        SET this.alpha TO alpha
+        SET this.beta TO beta
+
+    METHOD run(cost_matrix, num_solutions):
+        INITIALIZE pheromone_matrix AS a matrix with dimensions (number_of_nodes, number_of_nodes) filled with values (1 / number_of_nodes)
+        INITIALIZE best_paths AS an empty list
+
+        FOR iteration FROM 1 TO num_iterations:
+            SET all_paths TO CALL generate_all_paths WITH cost_matrix AND pheromone_matrix
+            CALL update_pheromone WITH pheromone_matrix, all_paths AND cost_matrix
+            SORT all_paths BY path cost in ascending order
+            ADD the first num_solutions paths from sorted all_paths TO best_paths
+            SORT best_paths BY path cost in ascending order AND KEEP only the first num_solutions elements
+            APPLY decay factor to pheromone_matrix
+        RETURN best_paths
+
+    METHOD generate_all_paths(cost_matrix, pheromone_matrix):
+        INITIALIZE all_paths AS an empty list
+        FOR each ant FROM 1 TO num_ants:
+            SET path TO CALL generate_path WITH cost_matrix AND pheromone_matrix
+            ADD path TO all_paths
+        RETURN all_paths
+
+    METHOD generate_path(cost_matrix, pheromone_matrix):
+        INITIALIZE path AS an empty list
+        INITIALIZE visited_nodes AS an empty set
+        SELECT a random node AS current_node
+        ADD current_node TO visited_nodes
+        ADD current_node TO path
+        WHILE the number of visited_nodes is less than number_of_nodes:
+            SET move_probabilities TO CALL calculate_move_prob WITH current_node, visited_nodes, pheromone_matrix AND cost_matrix
+            SELECT next_node based on move_probabilities
+            ADD next_node TO path
+            ADD next_node TO visited_nodes
+            SET current_node TO next_node
+        SET path_cost TO CALL calculate_path_cost WITH path AND cost_matrix
+        RETURN path AND path_cost
+
+    METHOD calculate_move_prob(current_node, visited_nodes, pheromone_matrix, cost_matrix):
+        INITIALIZE move_probabilities AS a list of zeros with size equal to the number of nodes
+        FOR each node i:
+            IF node i IS NOT visited:
+                IF the cost from current_node to node i is infinite:
+                    SET move_probabilities[i] TO 0
+                ELSE:
+                    SET move_probabilities[i] TO pheromone_matrix[current_node][i] ^ alpha * ((1.0 / cost_matrix[current_node][i]) ^ beta)
+        RETURN move_probabilities
+
+    METHOD calculate_path_cost(path, cost_matrix):
+        INITIALIZE total_cost AS 0
+        FOR each node in path EXCEPT the last one:
+            ADD the cost from the current node to the next node in path TO total_cost
+        RETURN total_cost
+
+    METHOD update_pheromone(pheromone_matrix, all_paths, cost_matrix):
+        FOR each path AND path_cost IN all_paths:
+            FOR i FROM 1 TO length of path - 1:
+                pheromone[path[i]][path[i + 1]] += 1.0 / path_cost
